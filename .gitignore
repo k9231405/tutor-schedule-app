@@ -23,6 +23,7 @@ desktop.ini
 *.swp
 *.swo
 
-# Environment variables
+# Environment variables & Secret Configs
 .env
 .env.local
+deploy_config.json
