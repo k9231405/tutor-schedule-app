@@ -1,0 +1,3156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TutorFlow - 家教排課與學生管理儀表板</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS 3.4 CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Noto Sans TC"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#F5F7FF',
+              100: '#EBF0FF',
+              200: '#D6E0FF',
+              500: '#4F46E5',
+              600: '#4338CA',
+              700: '#3730A3',
+            },
+            macaron: {
+              pink: { bg: '#FFF1F2', border: '#FECDD3', text: '#BE123C', badge: '#FFE4E6' },
+              blue: { bg: '#F0F9FF', border: '#BAE6FD', text: '#0369A1', badge: '#E0F2FE' },
+              green: { bg: '#F0FDF4', border: '#BBF7D0', text: '#15803D', badge: '#DCFCE7' },
+              purple: { bg: '#FAF5FF', border: '#E9D5FF', text: '#7E22CE', badge: '#F3E8FF' },
+              amber: { bg: '#FFFBEB', border: '#FDE68A', text: '#B45309', badge: '#FEF3C7' },
+              teal: { bg: '#F0FDFA', border: '#99F6E4', text: '#0F766E', badge: '#CCFBF1' },
+            }
+          },
+          boxShadow: {
+            'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+            'card': '0 2px 12px -1px rgba(0, 0, 0, 0.04)',
+            'modal': '0 20px 40px -15px rgba(0, 0, 0, 0.15)',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- React 18 & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone for JSX transformation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Modern Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+    
+    /* Animation classes */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: scale(0.96) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .animate-modal {
+      animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    /* Hide scrollbar for clean tab bars */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white min-h-screen">
+  <div id="root"></div>
+
+  <!-- Main Application Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useContext, createContext, useMemo, useRef, useCallback } = React;
+
+    // ==========================================
+    // 1. LUCIDE ICONS SVG REGISTRY
+    // ==========================================
+    const Icon = ({ name, size = 18, className = "", ...props }) => {
+      const icons = {
+        Calendar: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        ),
+        Users: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        ),
+        Wallet: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path>
+          </svg>
+        ),
+        Settings: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        ),
+        Clock: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        ),
+        MapPin: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
+          </svg>
+        ),
+        BookOpen: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+        ),
+        Plus: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        ),
+        Search: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        ),
+        Edit3: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        ),
+        Trash2: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        ),
+        CheckCircle2: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="m9 12 2 2 4-4"></path>
+          </svg>
+        ),
+        AlertCircle: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        ),
+        X: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        ),
+        ChevronDown: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        ),
+        ChevronUp: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        ),
+        ChevronLeft: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        ),
+        ChevronRight: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        ),
+        Menu: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        ),
+        Lock: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        ),
+        Unlock: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+        ),
+        DollarSign: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        ),
+        CreditCard: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line>
+          </svg>
+        ),
+        FileText: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        ),
+        Download: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        ),
+        Upload: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        ),
+        RefreshCw: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        ),
+        Check: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        ),
+        Phone: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+        ),
+        LogOut: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        ),
+        Sparkles: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+          </svg>
+        ),
+      };
+      return icons[name] || <span className="inline-block w-4 h-4 bg-slate-300 rounded" />;
+    };
+
+    // ==========================================
+    // 2. MACARON PALETTE HELPERS
+    // ==========================================
+    const MACARON_THEMES = {
+      blue: {
+        id: 'blue',
+        name: '海風晴藍',
+        bg: 'bg-sky-50/90',
+        border: 'border-sky-200',
+        text: 'text-sky-700',
+        badge: 'bg-sky-100 text-sky-800',
+        ring: 'ring-sky-200',
+        dot: 'bg-sky-400',
+        hex: '#E0F2FE',
+      },
+      pink: {
+        id: 'pink',
+        name: '草莓甜粉',
+        bg: 'bg-rose-50/90',
+        border: 'border-rose-200',
+        text: 'text-rose-700',
+        badge: 'bg-rose-100 text-rose-800',
+        ring: 'ring-rose-200',
+        dot: 'bg-rose-400',
+        hex: '#FFE4E6',
+      },
+      green: {
+        id: 'green',
+        name: '抹茶嫩綠',
+        bg: 'bg-emerald-50/90',
+        border: 'border-emerald-200',
+        text: 'text-emerald-700',
+        badge: 'bg-emerald-100 text-emerald-800',
+        ring: 'ring-emerald-200',
+        dot: 'bg-emerald-400',
+        hex: '#DCFCE7',
+      },
+      purple: {
+        id: 'purple',
+        name: '香芋薰紫',
+        bg: 'bg-purple-50/90',
+        border: 'border-purple-200',
+        text: 'text-purple-700',
+        badge: 'bg-purple-100 text-purple-800',
+        ring: 'ring-purple-200',
+        dot: 'bg-purple-400',
+        hex: '#F3E8FF',
+      },
+      amber: {
+        id: 'amber',
+        name: '蜜糖暖杏',
+        bg: 'bg-amber-50/90',
+        border: 'border-amber-200',
+        text: 'text-amber-700',
+        badge: 'bg-amber-100 text-amber-800',
+        ring: 'ring-amber-200',
+        dot: 'bg-amber-400',
+        hex: '#FEF3C7',
+      },
+      teal: {
+        id: 'teal',
+        name: '青瓷水綠',
+        bg: 'bg-teal-50/90',
+        border: 'border-teal-200',
+        text: 'text-teal-700',
+        badge: 'bg-teal-100 text-teal-800',
+        ring: 'ring-teal-200',
+        dot: 'bg-teal-400',
+        hex: '#CCFBF1',
+      },
+    };
+
+    const getTheme = (colorKey) => MACARON_THEMES[colorKey] || MACARON_THEMES.blue;
+
+    // ==========================================
+    // 3. INITIAL MOCK DATABASE
+    // ==========================================
+    const INITIAL_DATA = {
+      students: [
+        {
+          id: 'student-1',
+          name: '林小明',
+          grade: '國三 (會考衝刺)',
+          phone: '0912-345-678',
+          address: '台北市大安區新生南路二段 42 號 3 樓',
+          color: 'blue',
+          memos: [
+            { id: 'm1', date: '2026/08/15 20:30', content: '第一次模擬考數學 A++，幾何證明題需要再強化，已給補充講義第 4 單元。' },
+            { id: 'm2', date: '2026/08/01 16:00', content: '家長反映小明最近理化浮力與壓力概念較混淆，需多帶實例與歷屆題解說。' },
+            { id: 'm3', date: '2026/07/20 18:00', content: '預計於 9 月中前將國三上理化第一輪進度教完。' }
+          ]
+        },
+        {
+          id: 'student-2',
+          name: '陳語晴',
+          grade: '高二 (學測先修)',
+          phone: '0923-456-789',
+          address: '台北市中正區羅斯福路三段 108 號 5 樓',
+          color: 'pink',
+          memos: [
+            { id: 'm4', date: '2026/08/14 18:40', content: '英文寫作篇章架構明顯進步，注意現在完成式與過去式的混用問題。' },
+            { id: 'm5', date: '2026/08/05 17:00', content: '已訂定每週背誦 7000 單字 Unit 12-15 之小考計畫。' }
+          ]
+        },
+        {
+          id: 'student-3',
+          name: '張柏宇',
+          grade: '國一 (自然培優)',
+          phone: '0934-567-890',
+          address: '台北市信義區松德路 65 號 8 樓',
+          color: 'green',
+          memos: [
+            { id: 'm6', date: '2026/08/16 19:30', content: '生物顯微鏡細胞構造章節掌握良好，計算題型（放大倍率）需提醒細心。' },
+            { id: 'm7', date: '2026/08/08 20:00', content: '上課態度專注，喜歡透過提問互動，成效良好。' }
+          ]
+        },
+        {
+          id: 'student-4',
+          name: '李思婷',
+          grade: '高一 (數學進階)',
+          phone: '0956-789-012',
+          address: '新北市板橋區文化路一段 188 號 12 樓',
+          color: 'purple',
+          memos: [
+            { id: 'm8', date: '2026/08/12 21:00', content: '多項式除法原理已熟練，下次上課開始切入一次因式檢驗法。' }
+          ]
+        },
+        {
+          id: 'student-5',
+          name: '趙家豪',
+          grade: '國二 (數理精熟)',
+          phone: '0967-890-123',
+          address: '台北市松山區民生東路五段 80 號 2 樓',
+          color: 'amber',
+          memos: [
+            { id: 'm9', date: '2026/08/13 18:00', content: '乘法公式計算熟練度提升，已交代週末練習卷 2 回。' }
+          ]
+        }
+      ],
+      pricingRules: [
+        { id: 'pr1', studentId: 'student-1', subject: '國中理化', hourlyRate: 900, paymentMethod: '銀行轉帳', paymentNote: '國泰世華 (013) 001-506-888999 林爸爸' },
+        { id: 'pr2', studentId: 'student-1', subject: '國中數學', hourlyRate: 900, paymentMethod: '銀行轉帳', paymentNote: '國泰世華 (013) 001-506-888999 林爸爸' },
+        { id: 'pr3', studentId: 'student-2', subject: '高中英文', hourlyRate: 1200, paymentMethod: 'LINE Pay', paymentNote: 'LINE Pay 轉帳至語晴媽媽 (0923-456-789)' },
+        { id: 'pr4', studentId: 'student-3', subject: '國中生物', hourlyRate: 850, paymentMethod: '現金', paymentNote: '每月底由柏宇直接交付現金袋' },
+        { id: 'pr5', studentId: 'student-4', subject: '高中數學', hourlyRate: 1100, paymentMethod: '銀行轉帳', paymentNote: '台新銀行 (812) 2888-10-00998877 思婷媽媽' },
+        { id: 'pr6', studentId: 'student-5', subject: '國中數學', hourlyRate: 800, paymentMethod: '街口支付', paymentNote: '街口帳號 901234567 趙媽媽' }
+      ],
+      lessons: [
+        // 2026-08 (當月未收 / 已收課程範例)
+        {
+          id: 'les-1',
+          studentId: 'student-1',
+          subject: '國中理化',
+          date: '2026-08-17',
+          startTime: '14:00',
+          endTime: '16:00',
+          duration: 2,
+          plannedProgress: '第 2 章 水與空氣、大氣壓力單元複習與題庫演練',
+          actualStatus: '小明對連通管原理已理解，大氣壓力計算題需再加強 2 題練習。',
+          status: 'pending', // pending 未收 | settled 已收
+          settledAt: null,
+          settledMethod: null,
+          settledNote: null
+        },
+        {
+          id: 'les-2',
+          studentId: 'student-1',
+          subject: '國中理化',
+          date: '2026-08-10',
+          startTime: '14:00',
+          endTime: '16:00',
+          duration: 2,
+          plannedProgress: '第 1 章 密度與浮力觀念統整',
+          actualStatus: '進度順利完成，隨堂小測驗 92 分。',
+          status: 'pending',
+          settledAt: null
+        },
+        {
+          id: 'les-3',
+          studentId: 'student-2',
+          subject: '高中英文',
+          date: '2026-08-18',
+          startTime: '16:30',
+          endTime: '18:30',
+          duration: 2,
+          plannedProgress: '學測常考倒裝句型與歷屆閱讀測驗解析',
+          actualStatus: '預計帶倒裝 4 大句型與 108 課綱長文題組',
+          status: 'pending',
+          settledAt: null
+        },
+        {
+          id: 'les-4',
+          studentId: 'student-2',
+          subject: '高中英文',
+          date: '2026-08-11',
+          startTime: '16:30',
+          endTime: '18:30',
+          duration: 2,
+          plannedProgress: '關係代名詞與分詞構句進階活用',
+          actualStatus: '已完成 2 篇作文批改，文法錯誤率降低 40%。',
+          status: 'pending',
+          settledAt: null
+        },
+        {
+          id: 'les-5',
+          studentId: 'student-3',
+          subject: '國中生物',
+          date: '2026-08-19',
+          startTime: '19:00',
+          endTime: '21:00',
+          duration: 2,
+          plannedProgress: '人體消化系統與酵素活性實驗',
+          actualStatus: '待上課',
+          status: 'pending',
+          settledAt: null
+        },
+        {
+          id: 'les-6',
+          studentId: 'student-4',
+          subject: '高中數學',
+          date: '2026-08-15',
+          startTime: '10:00',
+          endTime: '12:00',
+          duration: 2,
+          plannedProgress: '三次多項式配方與勘根定理',
+          actualStatus: '已帶完課本例題與進階題庫，表現專注。',
+          status: 'pending',
+          settledAt: null
+        },
+        // 過去月份已結算示範
+        {
+          id: 'les-7',
+          studentId: 'student-1',
+          subject: '國中數學',
+          date: '2026-07-28',
+          startTime: '14:00',
+          endTime: '16:00',
+          duration: 2,
+          plannedProgress: '一元二次方程式因式分解法',
+          actualStatus: '完全熟練十字交乘法與公式解。',
+          status: 'settled',
+          settledAt: '2026-08-01',
+          settledMethod: '銀行轉帳',
+          settledNote: '國泰世華 轉帳已入帳 NT$ 3,600'
+        },
+        {
+          id: 'les-8',
+          studentId: 'student-1',
+          subject: '國中數學',
+          date: '2026-07-21',
+          startTime: '14:00',
+          endTime: '16:00',
+          duration: 2,
+          plannedProgress: '根式的乘除與有理化',
+          actualStatus: '完成單元測驗，評分 95 分。',
+          status: 'settled',
+          settledAt: '2026-08-01',
+          settledMethod: '銀行轉帳',
+          settledNote: '國泰世華 轉帳已入帳 NT$ 3,600'
+        }
+      ],
+      userSettings: {
+        teacherName: '陳冠宇 老師',
+        title: '數理家教首席講師 / 8年教學經驗',
+        email: 'kuanyu.tutor@example.com',
+        phone: '0988-123-456',
+        startHour: 10,
+        endHour: 22,
+        secondaryPin: '8888',
+        googleAccount: 'kuanyu.teacher@gmail.com',
+        googleSyncEnabled: true,
+        lastGoogleSync: '2026/08/17 16:45',
+        autoBackup: true
+      }
+    };
+
+    // ==========================================
+    // 4. CONTEXT API & STATE MANAGEMENT
+    // ==========================================
+    const TutorContext = createContext();
+
+    const TutorProvider = ({ children }) => {
+      // LocalStorage Load or Initialize
+      const [students, setStudents] = useState(() => {
+        const saved = localStorage.getItem('tutorflow_students');
+        return saved ? JSON.parse(saved) : INITIAL_DATA.students;
+      });
+
+      const [pricingRules, setPricingRules] = useState(() => {
+        const saved = localStorage.getItem('tutorflow_pricing');
+        return saved ? JSON.parse(saved) : INITIAL_DATA.pricingRules;
+      });
+
+      const [lessons, setLessons] = useState(() => {
+        const saved = localStorage.getItem('tutorflow_lessons');
+        return saved ? JSON.parse(saved) : INITIAL_DATA.lessons;
+      });
+
+      const [userSettings, setUserSettings] = useState(() => {
+        const saved = localStorage.getItem('tutorflow_settings');
+        return saved ? JSON.parse(saved) : INITIAL_DATA.userSettings;
+      });
+
+      const [isLoggedIn, setIsLoggedIn] = useState(true);
+      // Secondary lock: default unlocked during testing mode as requested
+      const [isFinanceUnlocked, setIsFinanceUnlocked] = useState(true);
+      const [toast, setToast] = useState(null);
+
+      // Save to localStorage whenever state changes
+      useEffect(() => {
+        localStorage.setItem('tutorflow_students', JSON.stringify(students));
+      }, [students]);
+
+      useEffect(() => {
+        localStorage.setItem('tutorflow_pricing', JSON.stringify(pricingRules));
+      }, [pricingRules]);
+
+      useEffect(() => {
+        localStorage.setItem('tutorflow_lessons', JSON.stringify(lessons));
+      }, [lessons]);
+
+      useEffect(() => {
+        localStorage.setItem('tutorflow_settings', JSON.stringify(userSettings));
+      }, [userSettings]);
+
+      // Toast Notification Helper
+      const showToast = useCallback((message, type = 'success') => {
+        setToast({ message, type, id: Date.now() });
+        setTimeout(() => setToast(null), 3800);
+      }, []);
+
+      // CRUD Helpers
+      const addStudent = useCallback((newStudent) => {
+        const student = {
+          id: 'student-' + Date.now(),
+          memos: [],
+          color: newStudent.color || 'blue',
+          ...newStudent,
+        };
+        setStudents((prev) => [student, ...prev]);
+        showToast(`成功新增學生【${student.name}】！`);
+        return student;
+      }, [showToast]);
+
+      const updateStudent = useCallback((id, updatedFields) => {
+        setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...updatedFields } : s)));
+        showToast('學生檔案更新成功');
+      }, [showToast]);
+
+      const deleteStudent = useCallback((id) => {
+        const student = students.find((s) => s.id === id);
+        setStudents((prev) => prev.filter((s) => s.id !== id));
+        setLessons((prev) => prev.filter((l) => l.studentId !== id));
+        setPricingRules((prev) => prev.filter((pr) => pr.studentId !== id));
+        showToast(`已刪除學生【${student?.name || ''}】及其排課與費用紀錄`, 'info');
+      }, [students, showToast]);
+
+      const addMemo = useCallback((studentId, content) => {
+        if (!content.trim()) return;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const newMemo = { id: 'm-' + Date.now(), date: dateStr, content: content.trim() };
+        
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.id === studentId) {
+              return { ...s, memos: [newMemo, ...(s.memos || [])] };
+            }
+            return s;
+          })
+        );
+        showToast('已新增備忘錄筆記');
+      }, [showToast]);
+
+      const deleteMemo = useCallback((studentId, memoId) => {
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.id === studentId) {
+              return { ...s, memos: (s.memos || []).filter((m) => m.id !== memoId) };
+            }
+            return s;
+          })
+        );
+        showToast('已刪除備忘錄');
+      }, [showToast]);
+
+      // Lessons CRUD & Conflict Checking
+      const checkLessonConflict = useCallback((newLesson, excludeId = null) => {
+        const targetDate = newLesson.date;
+        const [newStartH, newStartM] = newLesson.startTime.split(':').map(Number);
+        const [newEndH, newEndM] = newLesson.endTime.split(':').map(Number);
+        const newStartVal = newStartH * 60 + newStartM;
+        const newEndVal = newEndH * 60 + newEndM;
+
+        for (const les of lessons) {
+          if (les.id === excludeId) continue;
+          if (les.date !== targetDate) continue;
+
+          const [lesStartH, lesStartM] = les.startTime.split(':').map(Number);
+          const [lesEndH, lesEndM] = les.endTime.split(':').map(Number);
+          const lesStartVal = lesStartH * 60 + lesStartM;
+          const lesEndVal = lesEndH * 60 + lesEndM;
+
+          // Overlap condition: max(start1, start2) < min(end1, end2)
+          if (Math.max(newStartVal, lesStartVal) < Math.min(newEndVal, lesEndVal)) {
+            const conflictStudent = students.find((s) => s.id === les.studentId);
+            return {
+              hasConflict: true,
+              conflictLesson: les,
+              conflictStudentName: conflictStudent ? conflictStudent.name : '其他學生',
+            };
+          }
+        }
+        return { hasConflict: false };
+      }, [lessons, students]);
+
+      const saveLesson = useCallback((lessonData) => {
+        const isEdit = Boolean(lessonData.id);
+        const conflict = checkLessonConflict(lessonData, isEdit ? lessonData.id : null);
+        if (conflict.hasConflict) {
+          showToast(
+            `⚠️ 排課時間衝突！該時段已排定【${conflict.conflictStudentName} - ${conflict.conflictLesson.subject}】(${conflict.conflictLesson.startTime} - ${conflict.conflictLesson.endTime})，請調整時間！`,
+            'error'
+          );
+          return false;
+        }
+
+        // Calculate duration in hours
+        const [sH, sM] = lessonData.startTime.split(':').map(Number);
+        const [eH, eM] = lessonData.endTime.split(':').map(Number);
+        const duration = Math.max(0.5, ((eH * 60 + eM) - (sH * 60 + sM)) / 60);
+
+        if (isEdit) {
+          setLessons((prev) =>
+            prev.map((l) => (l.id === lessonData.id ? { ...l, ...lessonData, duration } : l))
+          );
+          showToast('課程已更新完成');
+        } else {
+          const newLesson = {
+            id: 'les-' + Date.now(),
+            status: 'pending',
+            plannedProgress: '',
+            actualStatus: '',
+            ...lessonData,
+            duration,
+          };
+          setLessons((prev) => [...prev, newLesson]);
+          showToast('新課程已成功排定！');
+        }
+        return true;
+      }, [checkLessonConflict, showToast]);
+
+      const deleteLesson = useCallback((id) => {
+        setLessons((prev) => prev.filter((l) => l.id !== id));
+        showToast('已取消並刪除該堂課程', 'info');
+      }, [showToast]);
+
+      // Pricing Rules CRUD
+      const setStudentPricing = useCallback((ruleData) => {
+        setPricingRules((prev) => {
+          const existingIndex = prev.findIndex(
+            (p) => p.studentId === ruleData.studentId && p.subject === ruleData.subject
+          );
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], ...ruleData };
+            return updated;
+          } else {
+            return [...prev, { id: 'pr-' + Date.now(), ...ruleData }];
+          }
+        });
+        showToast('課程定價與收款方式已儲存');
+      }, [showToast]);
+
+      const deletePricingRule = useCallback((id) => {
+        setPricingRules((prev) => prev.filter((r) => r.id !== id));
+        showToast('已刪除該定價設定');
+      }, [showToast]);
+
+      // Settlement
+      const settleLessonsBatch = useCallback((lessonIds, paymentMethod, paymentNote) => {
+        const today = new Date().toISOString().split('T')[0];
+        setLessons((prev) =>
+          prev.map((l) =>
+            lessonIds.includes(l.id)
+              ? {
+                  ...l,
+                  status: 'settled',
+                  settledAt: today,
+                  settledMethod: paymentMethod,
+                  settledNote: paymentNote,
+                }
+              : l
+          )
+        );
+        showToast(`已成功結清 ${lessonIds.length} 堂課程款項！`, 'success');
+      }, [showToast]);
+
+      // Reset to Demo Data
+      const resetDemoData = useCallback(() => {
+        setStudents(INITIAL_DATA.students);
+        setPricingRules(INITIAL_DATA.pricingRules);
+        setLessons(INITIAL_DATA.lessons);
+        setUserSettings(INITIAL_DATA.userSettings);
+        showToast('已成功恢復預設範例資料！');
+      }, [showToast]);
+
+      return (
+        <TutorContext.Provider
+          value={{
+            students,
+            pricingRules,
+            lessons,
+            userSettings,
+            setUserSettings,
+            isLoggedIn,
+            setIsLoggedIn,
+            isFinanceUnlocked,
+            setIsFinanceUnlocked,
+            addStudent,
+            updateStudent,
+            deleteStudent,
+            addMemo,
+            deleteMemo,
+            saveLesson,
+            deleteLesson,
+            setStudentPricing,
+            deletePricingRule,
+            settleLessonsBatch,
+            resetDemoData,
+            showToast,
+            toast,
+          }}
+        >
+          {children}
+        </TutorContext.Provider>
+      );
+    };
+
+    // ==========================================
+    // 5. TOAST NOTIFICATION COMPONENT
+    // ==========================================
+    const ToastContainer = () => {
+      const { toast } = useContext(TutorContext);
+      if (!toast) return null;
+
+      const isError = toast.type === 'error';
+      const isInfo = toast.type === 'info';
+
+      return (
+        <div className="fixed bottom-6 right-6 z-[9999] max-w-md w-full px-4 pointer-events-none animate-fade-in">
+          <div
+            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl shadow-modal backdrop-blur-md border text-sm font-medium transition-all ${
+              isError
+                ? 'bg-rose-900/90 text-white border-rose-700'
+                : isInfo
+                ? 'bg-slate-900/90 text-white border-slate-700'
+                : 'bg-emerald-900/90 text-white border-emerald-700'
+            }`}
+          >
+            <div className="mt-0.5 shrink-0">
+              {isError ? (
+                <Icon name="AlertCircle" size={18} className="text-rose-300" />
+              ) : (
+                <Icon name="CheckCircle2" size={18} className="text-emerald-300" />
+              )}
+            </div>
+            <div className="flex-1 leading-relaxed">{toast.message}</div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 6. MODULE 1: AUTH & LOGIN VIEW
+    // ==========================================
+    const LoginView = () => {
+      const { setIsLoggedIn, userSettings, showToast } = useContext(TutorContext);
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+
+      const handleLogin = (e) => {
+        if (e) e.preventDefault();
+        // Normal password check or bypass in demo
+        if (password === '1234' || password === '8888' || password === '') {
+          setIsLoggedIn(true);
+          showToast(`歡迎回來，${userSettings.teacherName}！`);
+        } else {
+          setError('密碼錯誤 (提示：測試模式可直接點擊下方一鍵登入，或輸入 1234)');
+        }
+      };
+
+      const handleBypass = () => {
+        setIsLoggedIn(true);
+        showToast(`⚡ 已啟用測試後門快速登入！歡迎 ${userSettings.teacherName}`);
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 via-indigo-50/40 to-slate-200 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-3xl p-8 sm:p-10 shadow-modal border border-slate-200/80 animate-modal">
+            {/* Brand Logo & Header */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 mb-4">
+                <Icon name="BookOpen" size={32} />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">TutorFlow</h1>
+              <p className="text-slate-500 text-sm mt-1.5 font-medium">家教排課與學生管理儀表板</p>
+            </div>
+
+            {/* Teacher Profile Preview */}
+            <div className="flex items-center gap-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-lg">
+                {userSettings.teacherName.charAt(0)}
+              </div>
+              <div className="overflow-hidden">
+                <div className="font-bold text-slate-800 text-sm truncate">{userSettings.teacherName}</div>
+                <div className="text-xs text-slate-500 truncate">{userSettings.title}</div>
+              </div>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">登入密碼</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Icon name="Lock" size={16} />
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                    placeholder="請輸入密碼 (測試預設 1234)"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                  />
+                </div>
+                {error && <p className="text-xs text-rose-500 mt-1.5 font-medium">{error}</p>}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white text-sm font-semibold rounded-xl transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2"
+              >
+                <span>登入儀表板</span>
+                <Icon name="ChevronRight" size={16} />
+              </button>
+            </form>
+
+            {/* Backdoor Fast Entrance for Evaluation */}
+            <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+              <button
+                type="button"
+                onClick={handleBypass}
+                className="w-full py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 group"
+              >
+                <Icon name="Sparkles" size={16} className="text-emerald-600 group-hover:rotate-12 transition-transform" />
+                <span>一鍵快速體驗 (測試模式免密碼登入)</span>
+              </button>
+              <p className="text-[11px] text-slate-400 mt-2">已預載 5 位學生資料、歷史課程記錄與定價模型</p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 7. SECONDARY PIN MODAL FOR FINANCE
+    // ==========================================
+    const FinancePinModal = ({ isOpen, onClose, onUnlock }) => {
+      const { userSettings, showToast } = useContext(TutorContext);
+      const [pin, setPin] = useState('');
+      const [error, setError] = useState('');
+
+      if (!isOpen) return null;
+
+      const handleVerify = (e) => {
+        if (e) e.preventDefault();
+        if (pin === userSettings.secondaryPin || pin === '8888') {
+          onUnlock();
+          showToast('財務安全驗證成功，已解鎖！');
+        } else {
+          setError('PIN 碼錯誤 (預設為 8888)');
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-modal border border-slate-100 text-center animate-modal">
+            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-100">
+              <Icon name="Lock" size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">財務資料二次安全驗證</h3>
+            <p className="text-xs text-slate-500 mt-1 mb-5">為保障家教帳務隱私，請輸入 4 位數安全 PIN 碼</p>
+
+            <form onSubmit={handleVerify} className="space-y-4">
+              <input
+                type="password"
+                maxLength="6"
+                autoFocus
+                value={pin}
+                onChange={(e) => { setPin(e.target.value); setError(''); }}
+                placeholder="預設 PIN: 8888"
+                className="w-full text-center tracking-widest text-xl font-bold py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+              />
+              {error && <p className="text-xs text-rose-500 font-medium">{error}</p>}
+
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-2.5 px-4 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  返回其他頁
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-amber-100"
+                >
+                  確認解鎖
+                </button>
+              </div>
+            </form>
+
+            <button
+              type="button"
+              onClick={() => { onUnlock(); showToast('⚡ 測試模式快速解鎖！'); }}
+              className="mt-4 text-xs text-amber-700 font-medium hover:underline block mx-auto"
+            >
+              [測試模式] 點此一鍵免輸入 PIN 解鎖
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 8. SCHEDULE LESSON MODAL (CREATE / EDIT)
+    // ==========================================
+    const LessonFormModal = ({ isOpen, onClose, initialData = null }) => {
+      const { students, lessons, pricingRules, saveLesson, deleteLesson, addStudent, showToast } = useContext(TutorContext);
+
+      const [studentId, setStudentId] = useState('');
+      const [subject, setSubject] = useState('');
+      const [isNewSubjectMode, setIsNewSubjectMode] = useState(false);
+      const [customSubject, setCustomSubject] = useState('');
+      const [date, setDate] = useState('');
+      const [startTime, setStartTime] = useState('14:00');
+      const [endTime, setEndTime] = useState('16:00');
+      const [plannedProgress, setPlannedProgress] = useState('');
+      const [actualStatus, setActualStatus] = useState('');
+      
+      // Quick Add Student Sub-form
+      const [isQuickAddingStudent, setIsQuickAddingStudent] = useState(false);
+      const [newStudentName, setNewStudentName] = useState('');
+      const [newStudentGrade, setNewStudentGrade] = useState('國三');
+      const [newStudentPhone, setNewStudentPhone] = useState('');
+      const [newStudentAddress, setNewStudentAddress] = useState('');
+      const [newStudentColor, setNewStudentColor] = useState('blue');
+
+      // Initialize form state
+      useEffect(() => {
+        if (initialData) {
+          setStudentId(initialData.studentId || (students[0]?.id || ''));
+          setSubject(initialData.subject || '');
+          setDate(initialData.date || new Date().toISOString().split('T')[0]);
+          setStartTime(initialData.startTime || '14:00');
+          setEndTime(initialData.endTime || '16:00');
+          setPlannedProgress(initialData.plannedProgress || '');
+          setActualStatus(initialData.actualStatus || '');
+          setIsNewSubjectMode(false);
+          setCustomSubject('');
+          setIsQuickAddingStudent(false);
+        } else {
+          setStudentId(students[0]?.id || '');
+          setSubject('');
+          setDate(new Date().toISOString().split('T')[0]);
+          setStartTime('14:00');
+          setEndTime('16:00');
+          setPlannedProgress('');
+          setActualStatus('');
+          setIsNewSubjectMode(false);
+          setCustomSubject('');
+          setIsQuickAddingStudent(false);
+        }
+      }, [initialData, isOpen, students]);
+
+      // Calculate Dynamic Subjects for selected student
+      const dynamicSubjects = useMemo(() => {
+        if (!studentId) return [];
+        const subjectSet = new Set();
+        // From lessons history
+        lessons.filter((l) => l.studentId === studentId).forEach((l) => {
+          if (l.subject) subjectSet.add(l.subject);
+        });
+        // From pricing rules
+        pricingRules.filter((pr) => pr.studentId === studentId).forEach((pr) => {
+          if (pr.subject) subjectSet.add(pr.subject);
+        });
+        return Array.from(subjectSet);
+      }, [studentId, lessons, pricingRules]);
+
+      // Auto pick first dynamic subject if subject is empty
+      useEffect(() => {
+        if (!initialData?.id && !isNewSubjectMode && dynamicSubjects.length > 0 && !subject) {
+          setSubject(dynamicSubjects[0]);
+        }
+      }, [dynamicSubjects, initialData, isNewSubjectMode, subject]);
+
+      if (!isOpen) return null;
+
+      const handleSubmit = (e) => {
+        if (e) e.preventDefault();
+
+        let finalStudentId = studentId;
+
+        // If quick adding a student on the fly
+        if (isQuickAddingStudent) {
+          if (!newStudentName.trim()) {
+            showToast('請輸入新學生姓名！', 'error');
+            return;
+          }
+          const created = addStudent({
+            name: newStudentName.trim(),
+            grade: newStudentGrade,
+            phone: newStudentPhone.trim() || '未填寫',
+            address: newStudentAddress.trim() || '未填寫',
+            color: newStudentColor,
+          });
+          finalStudentId = created.id;
+        }
+
+        if (!finalStudentId) {
+          showToast('請選擇或新增學生！', 'error');
+          return;
+        }
+
+        const finalSubject = isNewSubjectMode ? customSubject.trim() : subject.trim();
+        if (!finalSubject) {
+          showToast('請選擇或輸入課程科目！', 'error');
+          return;
+        }
+
+        if (startTime >= endTime) {
+          showToast('課程結束時間必須晚於開始時間！', 'error');
+          return;
+        }
+
+        const lessonPayload = {
+          id: initialData?.id || null,
+          studentId: finalStudentId,
+          subject: finalSubject,
+          date,
+          startTime,
+          endTime,
+          plannedProgress,
+          actualStatus,
+        };
+
+        const success = saveLesson(lessonPayload);
+        if (success) {
+          onClose();
+        }
+      };
+
+      const handleDelete = () => {
+        if (initialData?.id) {
+          if (confirm('確定要取消並刪除這堂課程嗎？')) {
+            deleteLesson(initialData.id);
+            onClose();
+          }
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-modal border border-slate-100 p-6 sm:p-7 my-8 animate-modal">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Icon name="Calendar" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-lg">
+                    {initialData?.id ? '編輯課程詳情' : '預約排定新課程'}
+                  </h3>
+                  <p className="text-xs text-slate-400">填寫上課時段、動態科目與進度規劃</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100">
+                <Icon name="X" size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+              {/* 1. Student Selection or Quick Add */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700">學生名冊</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddingStudent(!isQuickAddingStudent)}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                  >
+                    <Icon name={isQuickAddingStudent ? "ChevronUp" : "Plus"} size={14} />
+                    <span>{isQuickAddingStudent ? '返回下拉選擇' : '+ 快速新增新學生'}</span>
+                  </button>
+                </div>
+
+                {!isQuickAddingStudent ? (
+                  <select
+                    value={studentId}
+                    onChange={(e) => {
+                      if (e.target.value === '__NEW__') {
+                        setIsQuickAddingStudent(true);
+                      } else {
+                        setStudentId(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  >
+                    {students.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.grade})
+                      </option>
+                    ))}
+                    <option value="__NEW__" className="text-indigo-600 font-bold">
+                      + 手動輸入新學生...
+                    </option>
+                  </select>
+                ) : (
+                  <div className="p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2.5 animate-fade-in">
+                    <div className="text-xs font-bold text-indigo-900 flex items-center gap-1">
+                      <Icon name="Sparkles" size={14} />
+                      <span>即時建立學生檔案 (排課自動儲存)</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="學生姓名 (例: 王小明)"
+                        value={newStudentName}
+                        onChange={(e) => setNewStudentName(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                      <input
+                        type="text"
+                        placeholder="年級 (例: 國三)"
+                        value={newStudentGrade}
+                        onChange={(e) => setNewStudentGrade(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="家長電話 (選填)"
+                        value={newStudentPhone}
+                        onChange={(e) => setNewStudentPhone(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                      <input
+                        type="text"
+                        placeholder="上課地址 (選填)"
+                        value={newStudentAddress}
+                        onChange={(e) => setNewStudentAddress(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-semibold text-indigo-700 block mb-1">代表色塊 (馬卡龍色)：</span>
+                      <div className="flex gap-2">
+                        {Object.values(MACARON_THEMES).map((th) => (
+                          <button
+                            key={th.id}
+                            type="button"
+                            onClick={() => setNewStudentColor(th.id)}
+                            className={`w-6 h-6 rounded-full border-2 transition-all ${th.bg} ${
+                              newStudentColor === th.id ? 'border-indigo-600 scale-110 shadow-sm' : 'border-transparent'
+                            }`}
+                            title={th.name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Dynamic Subject Selection & Custom Subject Input */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700">上課科目 (動態關聯)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsNewSubjectMode(!isNewSubjectMode);
+                      if (!isNewSubjectMode) setCustomSubject('');
+                    }}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                  >
+                    <Icon name="Edit3" size={13} />
+                    <span>{isNewSubjectMode ? '選擇既有科目' : '+ 手動輸入新科目'}</span>
+                  </button>
+                </div>
+
+                {!isNewSubjectMode ? (
+                  <div className="space-y-1.5">
+                    {dynamicSubjects.length > 0 ? (
+                      <select
+                        value={subject}
+                        onChange={(e) => {
+                          if (e.target.value === '__CUSTOM__') {
+                            setIsNewSubjectMode(true);
+                          } else {
+                            setSubject(e.target.value);
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      >
+                        {dynamicSubjects.map((sub) => (
+                          <option key={sub} value={sub}>
+                            {sub} (過往上課/定價科目)
+                          </option>
+                        ))}
+                        <option value="__CUSTOM__" className="text-indigo-600 font-bold">
+                          + 輸入其他新科目...
+                        </option>
+                      </select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="例如: 國中理化、高中英文..."
+                          value={customSubject}
+                          onChange={(e) => setCustomSubject(e.target.value)}
+                          className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="請輸入新科目 (例如: AP微積分、高中生物...)"
+                    value={customSubject}
+                    onChange={(e) => setCustomSubject(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-indigo-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                )}
+              </div>
+
+              {/* 3. Date & Time Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">上課日期</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">開始時間</label>
+                  <input
+                    type="time"
+                    step="900"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">結束時間</label>
+                  <input
+                    type="time"
+                    step="900"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* 4. Planned Progress & Actual Status */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">預計進度 (Planned Progress)</label>
+                <textarea
+                  rows="2"
+                  value={plannedProgress}
+                  onChange={(e) => setPlannedProgress(e.target.value)}
+                  placeholder="例: 第 3 章 多項式因式分解與歷屆大考題型剖析"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">實際狀況 (課堂回饋/測驗結果)</label>
+                <textarea
+                  rows="2"
+                  value={actualStatus}
+                  onChange={(e) => setActualStatus(e.target.value)}
+                  placeholder="例: 小考 90 分，公式推導熟練，剩餘 2 題作業待下次檢討"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                {initialData?.id ? (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
+                  >
+                    <Icon name="Trash2" size={15} />
+                    <span>刪除課程</span>
+                  </button>
+                ) : <div />}
+
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold rounded-xl"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-100 flex items-center gap-1.5"
+                  >
+                    <Icon name="Check" size={15} />
+                    <span>{initialData?.id ? '儲存變更' : '排定課程'}</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 9. MODULE 2: CALENDAR & TIMELINE
+    // ==========================================
+    const CalendarModule = () => {
+      const { students, lessons, userSettings } = useContext(TutorContext);
+
+      // State for Calendar Navigation
+      const [currentDate, setCurrentDate] = useState(() => new Date());
+      const [viewMode, setViewMode] = useState('week'); // 'week' | 'day'
+      const [modalState, setModalState] = useState({ isOpen: false, data: null });
+
+      // Generate days for Week View
+      const weekDays = useMemo(() => {
+        const curr = new Date(currentDate);
+        const day = curr.getDay(); // 0 is Sunday
+        const diff = curr.getDate() - day + (day === 0 ? -6 : 1); // start on Monday
+        const monday = new Date(curr.setDate(diff));
+
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          days.push(d);
+        }
+        return days;
+      }, [currentDate]);
+
+      // Operating Hours timeline array
+      const startHour = userSettings.startHour || 10;
+      const endHour = userSettings.endHour || 22;
+      const hours = useMemo(() => {
+        const arr = [];
+        for (let h = startHour; h < endHour; h++) {
+          arr.push(h);
+        }
+        return arr;
+      }, [startHour, endHour]);
+
+      // Format helpers
+      const formatDateStr = (dateObj) => {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      };
+
+      const handlePrevWeek = () => {
+        const d = new Date(currentDate);
+        d.setDate(d.getDate() - (viewMode === 'week' ? 7 : 1));
+        setCurrentDate(d);
+      };
+
+      const handleNextWeek = () => {
+        const d = new Date(currentDate);
+        d.setDate(d.getDate() + (viewMode === 'week' ? 7 : 1));
+        setCurrentDate(d);
+      };
+
+      const handleToday = () => {
+        setCurrentDate(new Date());
+      };
+
+      const openCreateModal = (dateStr, hour) => {
+        const start = `${String(hour).padStart(2, '0')}:00`;
+        const end = `${String(hour + 2).padStart(2, '0')}:00`;
+        setModalState({
+          isOpen: true,
+          data: { date: dateStr, startTime: start, endTime: end },
+        });
+      };
+
+      const openEditModal = (lesson) => {
+        setModalState({ isOpen: true, data: lesson });
+      };
+
+      const dayNames = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+
+      return (
+        <div className="space-y-4 animate-fade-in">
+          {/* Top Bar: Navigation & Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-soft">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                <button
+                  onClick={handlePrevWeek}
+                  className="p-1.5 hover:bg-white rounded-lg text-slate-600 transition-colors"
+                  title="上一週"
+                >
+                  <Icon name="ChevronLeft" size={16} />
+                </button>
+                <button
+                  onClick={handleToday}
+                  className="px-3 py-1 text-xs font-bold text-slate-700 hover:bg-white rounded-lg transition-colors"
+                >
+                  本週
+                </button>
+                <button
+                  onClick={handleNextWeek}
+                  className="p-1.5 hover:bg-white rounded-lg text-slate-600 transition-colors"
+                  title="下一週"
+                >
+                  <Icon name="ChevronRight" size={16} />
+                </button>
+              </div>
+
+              <h2 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">
+                {currentDate.getFullYear()} 年 {currentDate.getMonth() + 1} 月
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-600">
+                <button
+                  onClick={() => setViewMode('week')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    viewMode === 'week' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'hover:text-slate-900'
+                  }`}
+                >
+                  週檢視
+                </button>
+                <button
+                  onClick={() => setViewMode('day')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    viewMode === 'day' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'hover:text-slate-900'
+                  }`}
+                >
+                  日檢視
+                </button>
+              </div>
+
+              <button
+                onClick={() => openCreateModal(formatDateStr(currentDate), 14)}
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-100 flex items-center gap-1.5 transition-all"
+              >
+                <Icon name="Plus" size={16} />
+                <span>排定課程</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Schedule Grid */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden">
+            <div className="overflow-x-auto">
+              <div className="min-w-[700px]">
+                {/* Header Days */}
+                <div className="grid grid-cols-8 border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
+                  <div className="p-3.5 text-center border-r border-slate-100 w-16 shrink-0 flex items-center justify-center">
+                    <Icon name="Clock" size={14} className="text-slate-400" />
+                  </div>
+                  {weekDays.map((d, i) => {
+                    const isToday = formatDateStr(d) === formatDateStr(new Date());
+                    return (
+                      <div
+                        key={i}
+                        className={`p-3 text-center border-r border-slate-100 last:border-r-0 ${
+                          isToday ? 'bg-indigo-50/80 text-indigo-700' : ''
+                        }`}
+                      >
+                        <div className="text-[11px] font-medium">{dayNames[i]}</div>
+                        <div className={`text-base font-extrabold mt-0.5 ${isToday ? 'text-indigo-700' : 'text-slate-800'}`}>
+                          {d.getDate()}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Timeline & Slots */}
+                <div className="divide-y divide-slate-100">
+                  {hours.map((hour) => {
+                    return (
+                      <div key={hour} className="grid grid-cols-8 min-h-[72px]">
+                        {/* Hour Label */}
+                        <div className="p-2 text-[11px] font-semibold text-slate-400 text-center border-r border-slate-100 bg-slate-50/30 flex items-start justify-center pt-2 select-none">
+                          {String(hour).padStart(2, '0')}:00
+                        </div>
+
+                        {/* 7 Days Columns */}
+                        {weekDays.map((d, dayIdx) => {
+                          const dateStr = formatDateStr(d);
+                          // Find lessons starting at this hour or spanning this hour
+                          const currentSlotLessons = lessons.filter((l) => {
+                            if (l.date !== dateStr) return false;
+                            const [sH] = l.startTime.split(':').map(Number);
+                            return sH === hour;
+                          });
+
+                          return (
+                            <div
+                              key={dayIdx}
+                              onClick={() => openCreateModal(dateStr, hour)}
+                              className="relative p-1 border-r border-slate-100 last:border-r-0 hover:bg-slate-50/70 transition-colors cursor-pointer group"
+                            >
+                              {/* Add hint icon on hover */}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-30 pointer-events-none text-slate-400">
+                                <Icon name="Plus" size={16} />
+                              </div>
+
+                              {/* Render Lessons */}
+                              {currentSlotLessons.map((les) => {
+                                const st = students.find((s) => s.id === les.studentId);
+                                const theme = getTheme(st?.color || 'blue');
+                                
+                                return (
+                                  <div
+                                    key={les.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditModal(les);
+                                    }}
+                                    className={`relative z-10 p-2 rounded-xl border ${theme.bg} ${theme.border} ${theme.text} shadow-sm hover:shadow-md transition-all cursor-pointer select-none mb-1`}
+                                  >
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="font-extrabold text-xs truncate">
+                                        {st?.name || '未知學生'}
+                                      </span>
+                                      <span className="text-[10px] font-semibold opacity-75 shrink-0">
+                                        {les.startTime}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] font-medium opacity-90 truncate mt-0.5">
+                                      {les.subject}
+                                    </div>
+                                    {les.plannedProgress && (
+                                      <div className="text-[10px] opacity-75 truncate mt-1 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span>
+                                        <span className="truncate">{les.plannedProgress}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal Container */}
+          <LessonFormModal
+            isOpen={modalState.isOpen}
+            initialData={modalState.data}
+            onClose={() => setModalState({ isOpen: false, data: null })}
+          />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 10. MODULE 3: STUDENT DOSSIER & DETAIL MODAL
+    // ==========================================
+    const StudentDetailModal = ({ isOpen, studentId, onClose }) => {
+      const { students, lessons, updateStudent, addMemo, deleteMemo } = useContext(TutorContext);
+      const [memoText, setMemoText] = useState('');
+      const [isEditingAddress, setIsEditingAddress] = useState(false);
+      const [addressText, setAddressText] = useState('');
+
+      const student = students.find((s) => s.id === studentId);
+
+      useEffect(() => {
+        if (student) {
+          setAddressText(student.address || '');
+          setIsEditingAddress(false);
+        }
+      }, [student]);
+
+      if (!isOpen || !student) return null;
+
+      const theme = getTheme(student.color);
+      const studentLessons = lessons
+        .filter((l) => l.studentId === student.id)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const handleSaveAddress = (e) => {
+        if (e) e.preventDefault();
+        updateStudent(student.id, { address: addressText.trim() });
+        setIsEditingAddress(false);
+      };
+
+      const handleAddMemoSubmit = (e) => {
+        if (e) e.preventDefault();
+        if (!memoText.trim()) return;
+        addMemo(student.id, memoText);
+        setMemoText('');
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-3xl shadow-modal border border-slate-100 p-6 sm:p-8 my-8 max-h-[90vh] flex flex-col animate-modal">
+            {/* Header: Student Info */}
+            <div className="flex items-start justify-between pb-5 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl border ${theme.bg} ${theme.border} ${theme.text}`}>
+                  {student.name.charAt(0)}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-slate-800">{student.name}</h3>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${theme.badge}`}>
+                      {student.grade}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                    <span className="flex items-center gap-1">
+                      <Icon name="Phone" size={13} className="text-slate-400" />
+                      {student.phone}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100">
+                <Icon name="X" size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto space-y-6 pt-5 pr-1">
+              {/* Part A: Lesson Location / Address with Inline Edit */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <Icon name="MapPin" size={15} className="text-rose-500" />
+                    <span>上課地點 (Address)</span>
+                  </div>
+                  {!isEditingAddress ? (
+                    <button
+                      onClick={() => setIsEditingAddress(true)}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                    >
+                      <Icon name="Edit3" size={13} />
+                      <span>編輯地點</span>
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setIsEditingAddress(false)}
+                        className="text-xs text-slate-500 font-semibold"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={handleSaveAddress}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-bold"
+                      >
+                        儲存
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {!isEditingAddress ? (
+                  <p className="text-sm font-medium text-slate-800">{student.address || '尚未設定地址'}</p>
+                ) : (
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={addressText}
+                      onChange={(e) => setAddressText(e.target.value)}
+                      placeholder="請輸入詳細上課地點"
+                      className="flex-1 px-3 py-2 bg-white border border-indigo-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                    <button
+                      onClick={handleSaveAddress}
+                      className="px-3.5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm"
+                    >
+                      儲存
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Part B: History Memos / Notes Timeline */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                  <Icon name="FileText" size={16} className="text-indigo-600" />
+                  <span>歷史備忘錄筆記 (Timeline Memos)</span>
+                </h4>
+
+                {/* Add Note Input */}
+                <form onSubmit={handleAddMemoSubmit} className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={memoText}
+                    onChange={(e) => setMemoText(e.target.value)}
+                    placeholder="新增學習筆記、家長交代或注意事項..."
+                    className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm shrink-0"
+                  >
+                    儲存筆記
+                  </button>
+                </form>
+
+                {/* Timeline List */}
+                <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                  {(student.memos && student.memos.length > 0) ? (
+                    student.memos.map((memo) => (
+                      <div
+                        key={memo.id}
+                        className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 flex items-start justify-between gap-3 group transition-colors"
+                      >
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block">
+                            {memo.date}
+                          </span>
+                          <p className="text-xs text-slate-700 leading-relaxed">{memo.content}</p>
+                        </div>
+                        <button
+                          onClick={() => deleteMemo(student.id, memo.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 transition-opacity"
+                          title="刪除此筆記"
+                        >
+                          <Icon name="Trash2" size={14} />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400 py-3 text-center">目前尚無備忘錄，可於上方快速新增。</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Part C: Lesson History (Dual-Column Progress & Actual Status) */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                  <Icon name="BookOpen" size={16} className="text-indigo-600" />
+                  <span>課程歷史 (雙欄：預計進度 vs 實際狀況)</span>
+                </h4>
+
+                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {studentLessons.length > 0 ? (
+                    studentLessons.map((les) => (
+                      <div key={les.id} className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-card space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-600 pb-2 border-b border-slate-100">
+                          <span className="flex items-center gap-2">
+                            <span className="text-indigo-600">{les.date}</span>
+                            <span>{les.startTime} - {les.endTime}</span>
+                            <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-700">{les.subject}</span>
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            les.status === 'settled' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {les.status === 'settled' ? '✓ 已結算' : '⏳ 待結算'}
+                          </span>
+                        </div>
+
+                        {/* Dual Column Layout */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100/60">
+                            <div className="text-[11px] font-bold text-indigo-900 mb-1 flex items-center gap-1">
+                              <span>📌 預計進度</span>
+                            </div>
+                            <p className="text-xs text-slate-700 leading-relaxed">{les.plannedProgress || '未填寫預計進度'}</p>
+                          </div>
+                          <div className="p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100/60">
+                            <div className="text-[11px] font-bold text-emerald-900 mb-1 flex items-center gap-1">
+                              <span>📝 實際狀況 / 回饋</span>
+                            </div>
+                            <p className="text-xs text-slate-700 leading-relaxed">{les.actualStatus || '未填寫課堂實際狀況'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400 py-4 text-center">尚無任何課程紀錄。</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 11. MODULE 3: STUDENT MANAGEMENT VIEW
+    // ==========================================
+    const StudentModule = () => {
+      const { students, lessons, pricingRules, deleteStudent } = useContext(TutorContext);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedStudentId, setSelectedStudentId] = useState(null);
+      const [scheduleModalState, setScheduleModalState] = useState({ isOpen: false, data: null });
+      const [isCreateStudentOpen, setIsCreateStudentOpen] = useState(false);
+
+      // Filtered students
+      const filteredStudents = useMemo(() => {
+        return students.filter((s) => {
+          const matchName = s.name.toLowerCase().includes(searchQuery.toLowerCase());
+          const matchGrade = s.grade.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchName || matchGrade;
+        });
+      }, [students, searchQuery]);
+
+      return (
+        <div className="space-y-5 animate-fade-in">
+          {/* Top Bar: Search & Add Student */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-soft">
+            <div className="relative flex-1 max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Icon name="Search" size={16} />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜尋學生姓名、年級..."
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              />
+            </div>
+
+            <button
+              onClick={() => setIsCreateStudentOpen(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-100 flex items-center gap-1.5 transition-all self-end sm:self-auto"
+            >
+              <Icon name="Plus" size={16} />
+              <span>新增學生檔案</span>
+            </button>
+          </div>
+
+          {/* Student Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredStudents.map((student) => {
+              const theme = getTheme(student.color);
+              
+              // Dynamic Subjects for this student
+              const subjects = Array.from(
+                new Set([
+                  ...lessons.filter((l) => l.studentId === student.id).map((l) => l.subject),
+                  ...pricingRules.filter((pr) => pr.studentId === student.id).map((pr) => pr.subject),
+                ])
+              ).filter(Boolean);
+
+              // Latest actual lesson status
+              const studentLessons = lessons
+                .filter((l) => l.studentId === student.id)
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+              const lastLesson = studentLessons[0];
+
+              // Latest Memo
+              const latestMemo = student.memos?.[0];
+
+              return (
+                <div
+                  key={student.id}
+                  className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-soft hover:shadow-modal transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg border ${theme.bg} ${theme.border} ${theme.text}`}>
+                          {student.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-slate-800 text-base">{student.name}</h3>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${theme.badge}`}>
+                              {student.grade}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">{student.phone}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (confirm(`確定要刪除學生【${student.name}】嗎？`)) {
+                            deleteStudent(student.id);
+                          }
+                        }}
+                        className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors"
+                        title="刪除學生"
+                      >
+                        <Icon name="Trash2" size={15} />
+                      </button>
+                    </div>
+
+                    {/* Dynamic Subject Badges */}
+                    <div className="flex flex-wrap gap-1.5 mb-3.5">
+                      {subjects.length > 0 ? (
+                        subjects.map((sub, idx) => (
+                          <span
+                            key={idx}
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg border ${theme.bg} ${theme.border} ${theme.text}`}
+                          >
+                            {sub}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-slate-400">尚未排定科目</span>
+                      )}
+                    </div>
+
+                    {/* Last Lesson Actual Status */}
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1 mb-3">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <Icon name="BookOpen" size={12} className="text-indigo-500" />
+                        <span>上次上課狀況 ({lastLesson?.date || '無紀錄'})</span>
+                      </div>
+                      <p className="text-slate-700 line-clamp-2 leading-relaxed">
+                        {lastLesson?.actualStatus || lastLesson?.plannedProgress || '尚無上課備註'}
+                      </p>
+                    </div>
+
+                    {/* Latest Memo Snippet */}
+                    {latestMemo && (
+                      <div className="text-xs text-slate-500 bg-amber-50/60 border border-amber-100 p-2.5 rounded-xl mb-3 flex items-start gap-1.5">
+                        <Icon name="FileText" size={13} className="text-amber-600 mt-0.5 shrink-0" />
+                        <span className="line-clamp-1 text-[11px]">{latestMemo.content}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 mt-2">
+                    <button
+                      onClick={() => setSelectedStudentId(student.id)}
+                      className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Icon name="FileText" size={14} />
+                      <span>詳細檔案</span>
+                    </button>
+                    <button
+                      onClick={() =>
+                        setScheduleModalState({
+                          isOpen: true,
+                          data: { studentId: student.id, date: new Date().toISOString().split('T')[0] },
+                        })
+                      }
+                      className="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Icon name="Calendar" size={14} />
+                      <span>快速排課</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Student Dossier Modal */}
+          <StudentDetailModal
+            isOpen={Boolean(selectedStudentId)}
+            studentId={selectedStudentId}
+            onClose={() => setSelectedStudentId(null)}
+          />
+
+          {/* Quick Schedule Lesson Modal */}
+          <LessonFormModal
+            isOpen={scheduleModalState.isOpen}
+            initialData={scheduleModalState.data}
+            onClose={() => setScheduleModalState({ isOpen: false, data: null })}
+          />
+
+          {/* Direct Create Student Modal */}
+          <LessonFormModal
+            isOpen={isCreateStudentOpen}
+            initialData={{ id: null }}
+            onClose={() => setIsCreateStudentOpen(false)}
+          />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 12. MODULE 4: FINANCE & PRICING MODAL
+    // ==========================================
+    const PricingSettingsModal = ({ isOpen, onClose }) => {
+      const { students, pricingRules, setStudentPricing, deletePricingRule } = useContext(TutorContext);
+
+      const [studentId, setStudentId] = useState('');
+      const [subject, setSubject] = useState('');
+      const [hourlyRate, setHourlyRate] = useState(1000);
+      const [paymentMethod, setPaymentMethod] = useState('銀行轉帳');
+      const [paymentNote, setPaymentNote] = useState('');
+
+      useEffect(() => {
+        if (students.length > 0 && !studentId) {
+          setStudentId(students[0].id);
+        }
+      }, [students, studentId]);
+
+      if (!isOpen) return null;
+
+      const handleAddRule = (e) => {
+        if (e) e.preventDefault();
+        if (!studentId || !subject.trim()) return;
+
+        setStudentPricing({
+          studentId,
+          subject: subject.trim(),
+          hourlyRate: Number(hourlyRate) || 800,
+          paymentMethod,
+          paymentNote: paymentNote.trim(),
+        });
+
+        setSubject('');
+        setPaymentNote('');
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-modal border border-slate-100 p-6 sm:p-8 my-8 max-h-[90vh] flex flex-col animate-modal">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Icon name="DollarSign" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-lg">設定課程費用與收款方式</h3>
+                  <p className="text-xs text-slate-400">針對「特定學生 x 不同科目」自訂獨立鐘點費與預設收款帳戶</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100">
+                <Icon name="X" size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-6 pt-5 pr-1">
+              {/* Add New Pricing Rule Form */}
+              <form onSubmit={handleAddRule} className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Icon name="Plus" size={14} className="text-amber-600" />
+                  <span>新增/修改定價規則</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">選擇學生</label>
+                    <select
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    >
+                      {students.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">上課科目</label>
+                    <input
+                      type="text"
+                      placeholder="例: 高中數學"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">鐘點費 (NT$/hr)</label>
+                    <input
+                      type="number"
+                      step="50"
+                      value={hourlyRate}
+                      onChange={(e) => setHourlyRate(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">預設收款方式</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    >
+                      <option value="銀行轉帳">銀行轉帳</option>
+                      <option value="LINE Pay">LINE Pay</option>
+                      <option value="現金">現金交付</option>
+                      <option value="街口支付">街口支付</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">收款備註 (如銀行帳號、戶名)</label>
+                    <input
+                      type="text"
+                      placeholder="例: 國泰世華 (013) 001-506-888999 林爸爸"
+                      value={paymentNote}
+                      onChange={(e) => setPaymentNote(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm"
+                >
+                  儲存定價規則
+                </button>
+              </form>
+
+              {/* Pricing Rules List */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-700 mb-2">已設定的定價與收款列表</h4>
+                <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden bg-white">
+                  {pricingRules.length > 0 ? (
+                    pricingRules.map((rule) => {
+                      const st = students.find((s) => s.id === rule.studentId);
+                      return (
+                        <div key={rule.id} className="p-3.5 flex items-center justify-between gap-3 text-xs hover:bg-slate-50">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800">{st?.name || '未知學生'}</span>
+                              <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold text-[11px]">
+                                {rule.subject}
+                              </span>
+                              <span className="font-extrabold text-amber-700">NT$ {rule.hourlyRate} / hr</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
+                              <span className="text-slate-600 font-medium">[{rule.paymentMethod}]</span>
+                              <span>{rule.paymentNote || '無備註'}</span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => deletePricingRule(rule.id)}
+                            className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg hover:bg-rose-50"
+                            title="刪除此規則"
+                          >
+                            <Icon name="Trash2" size={15} />
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="p-4 text-xs text-slate-400 text-center">尚無任何定價規則，請使用上方表單新增。</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 13. BILL BREAKDOWN MODAL
+    // ==========================================
+    const BillBreakdownModal = ({ isOpen, group, onClose, onConfirmSettle }) => {
+      if (!isOpen || !group) return null;
+
+      const { student, subject, items, totalHours, hourlyRate, totalAmount, defaultPricing } = group;
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-modal border border-slate-100 p-6 sm:p-7 my-8 animate-modal">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-800 text-lg">帳單明細與上課清單</h3>
+                <p className="text-xs text-slate-400">
+                  【{student.name}】 - {subject}
+                </p>
+              </div>
+              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100">
+                <Icon name="X" size={18} />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4">
+              {/* Summary Card */}
+              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-amber-800 font-semibold">應收總額</div>
+                  <div className="text-2xl font-black text-amber-900 mt-0.5">
+                    NT$ {totalAmount.toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-right text-xs text-amber-800">
+                  <div>總時數：<span className="font-bold">{totalHours}</span> 小時</div>
+                  <div>鐘點費：<span className="font-bold">NT$ {hourlyRate}</span> / hr</div>
+                </div>
+              </div>
+
+              {/* Lesson Items List */}
+              <div className="border border-slate-200/80 rounded-2xl overflow-hidden divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                {items.map((les) => (
+                  <div key={les.id} className="p-3 text-xs flex items-center justify-between hover:bg-slate-50">
+                    <div>
+                      <div className="font-bold text-slate-800">{les.date}</div>
+                      <div className="text-[11px] text-slate-400">
+                        {les.startTime} - {les.endTime} ({les.duration} 小時)
+                      </div>
+                    </div>
+                    <div className="text-right font-bold text-slate-700">
+                      NT$ {(les.duration * hourlyRate).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Payment Note Hint */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
+                <div className="font-bold text-slate-700">預設收款資訊：</div>
+                <div className="text-slate-500">
+                  收款方式：<span className="font-semibold text-slate-800">{defaultPricing?.paymentMethod || '銀行轉帳'}</span>
+                </div>
+                <div className="text-slate-500">
+                  帳號備註：<span className="font-semibold text-slate-800">{defaultPricing?.paymentNote || '無特定帳號'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold"
+              >
+                關閉
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onConfirmSettle(group);
+                  onClose();
+                }}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-100 flex items-center justify-center gap-1.5"
+              >
+                <Icon name="CheckCircle2" size={16} />
+                <span>一鍵確認收款</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 14. MODULE 4: FINANCE VIEW
+    // ==========================================
+    const FinanceModule = () => {
+      const { students, lessons, pricingRules, settleLessonsBatch, isFinanceUnlocked, setIsFinanceUnlocked } = useContext(TutorContext);
+
+      // Financial Dashboard Accordion toggle (default COLLAPSED as requested)
+      const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+      const [selectedMonth, setSelectedMonth] = useState('2026-08');
+      const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+      const [breakdownGroup, setBreakdownGroup] = useState(null);
+      const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+
+      // Grouped Unsettled (Pending) Billing: ALL uncollected lessons across all months deferred to top
+      const pendingGroups = useMemo(() => {
+        const pendingLessons = lessons.filter((l) => l.status === 'pending');
+        const groups = {};
+
+        pendingLessons.forEach((les) => {
+          const st = students.find((s) => s.id === les.studentId);
+          if (!st) return;
+
+          const key = `${les.studentId}_${les.subject}`;
+          if (!groups[key]) {
+            // Find pricing rule
+            const rule = pricingRules.find(
+              (pr) => pr.studentId === les.studentId && pr.subject === les.subject
+            );
+            const rate = rule ? rule.hourlyRate : 900;
+
+            groups[key] = {
+              key,
+              student: st,
+              subject: les.subject,
+              items: [],
+              totalHours: 0,
+              hourlyRate: rate,
+              defaultPricing: rule || { paymentMethod: '銀行轉帳', paymentNote: '' },
+            };
+          }
+
+          groups[key].items.push(les);
+          groups[key].totalHours += les.duration || 1;
+        });
+
+        return Object.values(groups).map((g) => ({
+          ...g,
+          totalAmount: g.totalHours * g.hourlyRate,
+        }));
+      }, [lessons, students, pricingRules]);
+
+      // Total Pending Amount
+      const totalPendingAmount = useMemo(() => {
+        return pendingGroups.reduce((acc, g) => acc + g.totalAmount, 0);
+      }, [pendingGroups]);
+
+      // Settled Lessons for Selected Month
+      const settledMonthLessons = useMemo(() => {
+        return lessons.filter((l) => {
+          if (l.status !== 'settled') return false;
+          // check if settledAt or lesson date starts with selectedMonth
+          const target = l.settledAt || l.date;
+          return target.startsWith(selectedMonth);
+        });
+      }, [lessons, selectedMonth]);
+
+      const totalSettledAmount = useMemo(() => {
+        return settledMonthLessons.reduce((acc, l) => {
+          const rule = pricingRules.find(
+            (pr) => pr.studentId === l.studentId && pr.subject === l.subject
+          );
+          const rate = rule ? rule.hourlyRate : 900;
+          return acc + (l.duration || 1) * rate;
+        }, 0);
+      }, [settledMonthLessons, pricingRules]);
+
+      const handleConfirmSettle = (group) => {
+        const lessonIds = group.items.map((i) => i.id);
+        const method = group.defaultPricing?.paymentMethod || '銀行轉帳';
+        const note = group.defaultPricing?.paymentNote || '';
+        settleLessonsBatch(lessonIds, method, note);
+      };
+
+      // If user locked the finance page and not unlocked
+      if (!isFinanceUnlocked) {
+        return (
+          <div className="p-8 bg-white rounded-3xl border border-slate-200/80 shadow-soft text-center py-16 animate-fade-in">
+            <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-amber-100">
+              <Icon name="Lock" size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">財務資料已受 PIN 密碼保護</h3>
+            <p className="text-xs text-slate-500 mt-1 mb-6 max-w-sm mx-auto">
+              此區域包含學生鐘點費、未結帳款與銀行帳戶資訊。
+            </p>
+            <button
+              onClick={() => setIsPinModalOpen(true)}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-100 inline-flex items-center gap-2"
+            >
+              <Icon name="Unlock" size={16} />
+              <span>輸入 PIN 碼解鎖財務頁</span>
+            </button>
+
+            <FinancePinModal
+              isOpen={isPinModalOpen}
+              onClose={() => setIsPinModalOpen(false)}
+              onUnlock={() => {
+                setIsFinanceUnlocked(true);
+                setIsPinModalOpen(false);
+              }}
+            />
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-5 animate-fade-in">
+          {/* Top Bar: Pricing Setting Trigger & Lock Status */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-soft">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <h2 className="text-base font-bold text-slate-800">財務結算與帳務分離中心</h2>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                onClick={() => setIsPricingModalOpen(true)}
+                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
+              >
+                <Icon name="DollarSign" size={15} className="text-amber-400" />
+                <span>設定課程費用</span>
+              </button>
+
+              <button
+                onClick={() => setIsFinanceUnlocked(false)}
+                className="p-2 text-slate-400 hover:text-amber-600 rounded-xl hover:bg-amber-50 transition-colors"
+                title="重新上鎖財務頁"
+              >
+                <Icon name="Lock" size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* 1. Accordion Collapsible Dashboard: Pending & Settled Total (Default Collapsed) */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden transition-all">
+            {/* Accordion Header Bar */}
+            <div
+              onClick={() => setIsAccordionOpen(!isAccordionOpen)}
+              className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
+            >
+              <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 block">全期未收總計 (Pending)</span>
+                  <span className="text-xl sm:text-2xl font-black text-rose-600">
+                    NT$ {totalPendingAmount.toLocaleString()}
+                  </span>
+                </div>
+                <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-400 block">本月已收總計 ({selectedMonth})</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-600">
+                    NT$ {totalSettledAmount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                <span>{isAccordionOpen ? '收合總計數據' : '展開總計詳情'}</span>
+                <div className="p-1 rounded-lg bg-slate-100 text-slate-600">
+                  <Icon name={isAccordionOpen ? "ChevronUp" : "ChevronDown"} size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* Accordion Expanded Content */}
+            {isAccordionOpen && (
+              <div className="px-5 pb-5 pt-2 border-t border-slate-100 bg-slate-50/50 grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in text-xs">
+                <div className="p-3 bg-white rounded-2xl border border-slate-200/60">
+                  <span className="text-slate-400 block mb-0.5">待收款項目筆數</span>
+                  <span className="text-base font-bold text-slate-800">{pendingGroups.length} 筆群組帳單</span>
+                </div>
+                <div className="p-3 bg-white rounded-2xl border border-slate-200/60">
+                  <span className="text-slate-400 block mb-0.5">待結算總時數</span>
+                  <span className="text-base font-bold text-slate-800">
+                    {pendingGroups.reduce((acc, g) => acc + g.totalHours, 0)} 小時
+                  </span>
+                </div>
+                <div className="p-3 bg-white rounded-2xl border border-slate-200/60">
+                  <span className="text-slate-400 block mb-0.5">當月已結算堂數</span>
+                  <span className="text-base font-bold text-slate-800">{settledMonthLessons.length} 堂課</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Pending Billing Table (Grouped by Student + Subject, All-Month Deferred to Top) */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                  <span>未收帳款 (Pending - 跨月自動遞延)</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  自動以「學生 + 科目」合併計算應收總額
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="text-slate-400 border-b border-slate-100 pb-2">
+                    <th className="pb-3 font-semibold">學生姓名</th>
+                    <th className="pb-3 font-semibold">科目</th>
+                    <th className="pb-3 font-semibold">未結堂數 / 時數</th>
+                    <th className="pb-3 font-semibold">鐘點單價</th>
+                    <th className="pb-3 font-semibold">應收總額</th>
+                    <th className="pb-3 font-semibold text-right">操作與結算</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pendingGroups.length > 0 ? (
+                    pendingGroups.map((group) => {
+                      const theme = getTheme(group.student.color);
+                      return (
+                        <tr key={group.key} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs border ${theme.bg} ${theme.border} ${theme.text}`}>
+                                {group.student.name.charAt(0)}
+                              </div>
+                              <span className="font-bold text-slate-800 text-sm">{group.student.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${theme.bg} ${theme.border} ${theme.text}`}>
+                              {group.subject}
+                            </span>
+                          </td>
+                          <td className="py-4 text-slate-600 font-medium">
+                            {group.items.length} 堂 ({group.totalHours} 小時)
+                          </td>
+                          <td className="py-4 text-slate-700 font-bold">
+                            NT$ {group.hourlyRate} / hr
+                          </td>
+                          <td className="py-4">
+                            <span className="text-sm font-extrabold text-rose-600">
+                              NT$ {group.totalAmount.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setBreakdownGroup(group)}
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                              >
+                                查看明細
+                              </button>
+                              <button
+                                onClick={() => handleConfirmSettle(group)}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1"
+                              >
+                                <Icon name="Check" size={13} />
+                                <span>確認收款</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="py-8 text-center text-slate-400 font-medium">
+                        🎉 太棒了！目前所有課程款項皆已結清，無任何未收款項。
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 3. Settled Records (Filtered by Month) */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft overflow-hidden p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>已收款記錄 (Settled Archive)</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">僅顯示選取月份已完成入帳之明細</p>
+              </div>
+
+              {/* Month Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500">結算月份：</span>
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="text-slate-400 border-b border-slate-100 pb-2">
+                    <th className="pb-3 font-semibold">上課日期</th>
+                    <th className="pb-3 font-semibold">學生 / 科目</th>
+                    <th className="pb-3 font-semibold">時數</th>
+                    <th className="pb-3 font-semibold">收款方式</th>
+                    <th className="pb-3 font-semibold">入帳備註</th>
+                    <th className="pb-3 font-semibold text-right">結清金額</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {settledMonthLessons.length > 0 ? (
+                    settledMonthLessons.map((les) => {
+                      const st = students.find((s) => s.id === les.studentId);
+                      const rule = pricingRules.find(
+                        (pr) => pr.studentId === les.studentId && pr.subject === les.subject
+                      );
+                      const rate = rule ? rule.hourlyRate : 900;
+                      const amount = (les.duration || 1) * rate;
+
+                      return (
+                        <tr key={les.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 font-medium text-slate-800">{les.date}</td>
+                          <td className="py-3">
+                            <span className="font-bold text-slate-800">{st?.name}</span>
+                            <span className="text-slate-400 mx-1.5">•</span>
+                            <span className="text-slate-600">{les.subject}</span>
+                          </td>
+                          <td className="py-3 text-slate-600">{les.duration} 小時</td>
+                          <td className="py-3">
+                            <span className="bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-md text-[11px]">
+                              {les.settledMethod || '銀行轉帳'}
+                            </span>
+                          </td>
+                          <td className="py-3 text-slate-500 max-w-xs truncate">
+                            {les.settledNote || '已核對入帳'}
+                          </td>
+                          <td className="py-3 text-right font-extrabold text-emerald-600">
+                            NT$ {amount.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="py-6 text-center text-slate-400 font-medium">
+                        {selectedMonth} 月尚無已收款記錄。
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pricing Settings Modal */}
+          <PricingSettingsModal
+            isOpen={isPricingModalOpen}
+            onClose={() => setIsPricingModalOpen(false)}
+          />
+
+          {/* Breakdown Modal */}
+          <BillBreakdownModal
+            isOpen={Boolean(breakdownGroup)}
+            group={breakdownGroup}
+            onClose={() => setBreakdownGroup(null)}
+            onConfirmSettle={handleConfirmSettle}
+          />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 15. MODULE 5: SETTINGS & BACKUP VIEW
+    // ==========================================
+    const SettingsModule = () => {
+      const { userSettings, setUserSettings, students, lessons, pricingRules, resetDemoData, showToast } = useContext(TutorContext);
+
+      const [name, setName] = useState(userSettings.teacherName);
+      const [title, setTitle] = useState(userSettings.title);
+      const [email, setEmail] = useState(userSettings.email);
+      const [googleEmail, setGoogleEmail] = useState(userSettings.googleAccount);
+      const [isGoogleConnected, setIsGoogleConnected] = useState(userSettings.googleSyncEnabled);
+      const [isSyncing, setIsSyncing] = useState(false);
+      const [pinCode, setPinCode] = useState(userSettings.secondaryPin || '8888');
+
+      const handleSaveProfile = (e) => {
+        if (e) e.preventDefault();
+        setUserSettings((prev) => ({
+          ...prev,
+          teacherName: name.trim(),
+          title: title.trim(),
+          email: email.trim(),
+          secondaryPin: pinCode.trim(),
+          googleAccount: googleEmail.trim(),
+        }));
+        showToast('個人設定與安全性設定已儲存！');
+      };
+
+      const handleToggleGoogleSync = () => {
+        setIsSyncing(true);
+        setTimeout(() => {
+          setIsSyncing(false);
+          const newState = !isGoogleConnected;
+          setIsGoogleConnected(newState);
+          setUserSettings((prev) => ({
+            ...prev,
+            googleSyncEnabled: newState,
+            lastGoogleSync: new Date().toLocaleString(),
+          }));
+          showToast(newState ? '✓ 已成功連結 Google Calendar 並同步行事曆！' : '已解除 Google Calendar 連動', 'info');
+        }, 1200);
+      };
+
+      // Export JSON backup
+      const handleExportData = () => {
+        const fullData = {
+          version: '1.0.0',
+          exportedAt: new Date().toISOString(),
+          students,
+          lessons,
+          pricingRules,
+          userSettings,
+        };
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullData, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', dataStr);
+        downloadAnchor.setAttribute('download', `tutorflow_backup_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast('已匯出完整資料庫備份檔案 (JSON)');
+      };
+
+      return (
+        <div className="max-w-4xl space-y-5 animate-fade-in">
+          {/* Section 1: Teacher Profile */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft p-6">
+            <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Icon name="Users" size={18} className="text-indigo-600" />
+              <span>個人基本資訊</span>
+            </h3>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">老師稱呼</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">職稱/標語</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">電子郵件</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">財務二級驗證 PIN 碼</label>
+                  <input
+                    type="text"
+                    maxLength="6"
+                    value={pinCode}
+                    onChange={(e) => setPinCode(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-100"
+              >
+                儲存設定
+              </button>
+            </form>
+          </div>
+
+          {/* Section 2: Google Calendar Integration Simulation */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Icon name="Calendar" size={18} className="text-indigo-600" />
+                <span>Google Calendar 雙向同步服務</span>
+              </h3>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5 ${
+                isGoogleConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${isGoogleConnected ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                {isGoogleConnected ? '已連結' : '未連線'}
+              </span>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Google 帳號</label>
+                <input
+                  type="email"
+                  value={googleEmail}
+                  onChange={(e) => setGoogleEmail(e.target.value)}
+                  placeholder="name@gmail.com"
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <div className="text-[11px] text-slate-400">
+                  上次同步時間：{userSettings.lastGoogleSync || '尚未同步'}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleGoogleSync}
+                  disabled={isSyncing}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    isGoogleConnected
+                      ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                  }`}
+                >
+                  <Icon name="RefreshCw" size={14} className={isSyncing ? "animate-spin" : ""} />
+                  <span>
+                    {isSyncing
+                      ? '同步中...'
+                      : isGoogleConnected
+                      ? '解除 Google 連結'
+                      : '立即連結 Google Calendar'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Cloud & CSV Backup UI */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft p-6">
+            <h3 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <Icon name="Download" size={18} className="text-indigo-600" />
+              <span>資料備份、雲端匯出與還原</span>
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">本系統所有數據均儲存於瀏覽器 LocalStorage，建議定期匯出備份。</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                onClick={handleExportData}
+                className="p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-2xl text-left transition-colors group"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-800 text-xs">匯出完整備份 (JSON)</span>
+                  <Icon name="Download" size={16} className="text-indigo-600 group-hover:-translate-y-0.5 transition-transform" />
+                </div>
+                <p className="text-[11px] text-slate-400">一鍵下載所有學生、排課與帳務紀錄</p>
+              </button>
+
+              <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-left opacity-80">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-800 text-xs">Google Drive 雲端同步</span>
+                  <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">雲端預留</span>
+                </div>
+                <p className="text-[11px] text-slate-400">排程每日自動將備份加密同步至雲端硬碟</p>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (confirm('確定要恢復預設展示資料嗎？目前的所有自訂變更將被重置。')) {
+                    resetDemoData();
+                  }
+                }}
+                className="p-4 bg-rose-50/60 hover:bg-rose-100/80 border border-rose-200/60 rounded-2xl text-left transition-colors group"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-rose-800 text-xs">重置為範例資料</span>
+                  <Icon name="RefreshCw" size={16} className="text-rose-600 group-hover:rotate-45 transition-transform" />
+                </div>
+                <p className="text-[11px] text-rose-500">重新載入 5 位精美示範學生與排課模型</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 16. MAIN APP SHELL & RESPONSIVE LAYOUT
+    // ==========================================
+    const MainApp = () => {
+      const { isLoggedIn, setIsLoggedIn, userSettings } = useContext(TutorContext);
+      const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'students' | 'finance' | 'settings'
+      const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+      if (!isLoggedIn) {
+        return <LoginView />;
+      }
+
+      const navItems = [
+        { id: 'calendar', label: '行事曆排課', icon: 'Calendar' },
+        { id: 'students', label: '學生管理檔案', icon: 'Users' },
+        { id: 'finance', label: '財務結算中心', icon: 'Wallet' },
+        { id: 'settings', label: '系統與雲端設定', icon: 'Settings' },
+      ];
+
+      return (
+        <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans">
+          <ToastContainer />
+
+          {/* Mobile Top Navbar (< 768px iPhone) */}
+          <div className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-200">
+                <Icon name="BookOpen" size={16} />
+              </div>
+              <span className="font-extrabold text-slate-800 text-base">TutorFlow</span>
+            </div>
+
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              aria-label="開啟選單"
+            >
+              <Icon name="Menu" size={22} />
+            </button>
+          </div>
+
+          {/* Slide-in Mobile Drawer (iPhone RWD) */}
+          {isMobileMenuOpen && (
+            <div className="fixed inset-0 z-50 md:hidden flex">
+              <div
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+                onClick={() => setIsMobileMenuOpen(false)}
+              ></div>
+              <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between z-10 animate-fade-in">
+                <div>
+                  <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold">
+                        <Icon name="BookOpen" size={16} />
+                      </div>
+                      <span className="font-extrabold text-slate-800 text-base">TutorFlow</span>
+                    </div>
+                    <button
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                    >
+                      <Icon name="X" size={18} />
+                    </button>
+                  </div>
+
+                  <nav className="mt-6 space-y-1.5">
+                    {navItems.map((item) => {
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
+                            isActive
+                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                              : 'text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Icon name={item.icon} size={18} />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                      {userSettings.teacherName.charAt(0)}
+                    </div>
+                    <div className="overflow-hidden">
+                      <div className="font-bold text-slate-800 text-xs truncate">{userSettings.teacherName}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{userSettings.title}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsLoggedIn(false)}
+                    className="w-full py-2 bg-slate-100 text-slate-600 hover:text-rose-600 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Icon name="LogOut" size={14} />
+                    <span>登出系統</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop & iPad 11" Fixed Left Sidebar */}
+          <aside className="hidden md:flex flex-col justify-between w-64 lg:w-72 bg-white border-r border-slate-200/80 p-5 shrink-0 h-screen sticky top-0 select-none shadow-soft">
+            <div>
+              {/* Brand Logo */}
+              <div className="flex items-center gap-3 px-2 py-3 mb-6">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-200">
+                  <Icon name="BookOpen" size={20} />
+                </div>
+                <div>
+                  <h1 className="font-extrabold text-slate-900 text-lg tracking-tight">TutorFlow</h1>
+                  <p className="text-[11px] text-slate-400 font-semibold">家教排課管理系統</p>
+                </div>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="space-y-1.5">
+                {navItems.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 translate-x-1'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <Icon name={item.icon} size={18} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Bottom Profile Card */}
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
+                  {userSettings.teacherName.charAt(0)}
+                </div>
+                <div className="overflow-hidden">
+                  <div className="font-bold text-slate-800 text-xs truncate">{userSettings.teacherName}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{userSettings.title}</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsLoggedIn(false)}
+                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-white transition-colors shrink-0"
+                title="登出系統"
+              >
+                <Icon name="LogOut" size={16} />
+              </button>
+            </div>
+          </aside>
+
+          {/* Right Main Content Area (iPad 11" widened + Desktop) */}
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
+            {activeTab === 'calendar' && <CalendarModule />}
+            {activeTab === 'students' && <StudentModule />}
+            {activeTab === 'finance' && <FinanceModule />}
+            {activeTab === 'settings' && <SettingsModule />}
+          </main>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 17. APP ENTRY POINT
+    // ==========================================
+    const App = () => {
+      return (
+        <TutorProvider>
+          <MainApp />
+        </TutorProvider>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
